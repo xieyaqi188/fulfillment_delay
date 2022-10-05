@@ -8,7 +8,6 @@ import pandas as pd
 from tqdm import tqdm
 
 from policy import online, offline
-from regret_plot import regret_plot
 
 
 # secretary problem test
