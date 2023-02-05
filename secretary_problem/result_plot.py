@@ -1,63 +1,107 @@
-# @author: Yaqi Xie
-# @email: xieyq188@gmail.com
+
 # @date: 2022/08/17
 
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy import optimize as op
+import math
 
 
 def data(instance):
-    # output = {"off": test_offline, "on_delay": test_online, "delay_num": delay_num}
+    # output = {"on_delay": ratio_online, "delay_list": delay_list}
     instance = instance.item()
-    offline = instance['off']
-    online = instance['on_delay']
-    delay_num = instance['delay_num']
-    regret_delay = [1 - on for on in online]
-    ratio = online
-    return regret_delay, ratio, delay_num
+    online_ratio = instance['on_delay']
+    delay_list = instance['delay_list']
+    print(delay_list)
+
+    regret_ratio = [1 - on for on in online_ratio]
+    diff = [0] * (len(delay_list) - 1)
+    rho = [0] * len(delay_list)
+    for K in range(len(delay_list) - 1):
+        diff[K] = regret_ratio[K] - regret_ratio[K + 1]
+        rho[K] = regret_ratio[K + 1] / regret_ratio[K]
+        print(K, regret_ratio[K])
+    print("Ratio", regret_ratio)
+    print("Difference", diff)
+    print("Rho", rho)
+    return regret_ratio, delay_list, diff, rho
 
 
 if __name__ == '__main__':
-    instance1 = np.load('./result_secretary/setting25.npy', allow_pickle=True)
-    regret1 = data(instance1)[0]
-    ratio1 = data(instance1)[1]
-    delay_num = data(instance1)[2]
+    # inv_num = 25, 50, 75
+    # flag = "delay", "batch", "unknown"
+    inv_num = 25
+    flag = "batch"
 
-    instance2 = np.load('./result_secretary/setting50.npy', allow_pickle=True)
-    regret2 = data(instance2)[0]
-    ratio2 = data(instance2)[1]
+    if flag == "delay":
+        instance1 = np.load('./result_secretary/setting25delay.npy', allow_pickle=True)
+        regret1 = data(instance1)[0]
+        delay_list = data(instance1)[1]
 
-    instance3 = np.load('./result_secretary/setting75.npy', allow_pickle=True)
-    regret3 = data(instance3)[0]
-    ratio3 = data(instance3)[1]
-    #
-    # instance4 = np.load('./result_secretary/setting4.npy', allow_pickle=True)
-    # regret4 = data(instance4)[0]
-    # ratio4 = data(instance4)[1]
+        instance2 = np.load('./result_secretary/setting50delay.npy', allow_pickle=True)
+        regret2 = data(instance2)[0]
 
-    delay_list = [K - 1 for K in range(delay_num + 2)]
+        instance3 = np.load('./result_secretary/setting75delay.npy', allow_pickle=True)
+        regret3 = data(instance3)[0]
 
-    plt.title("Regret Ratios for Multisecretary Problem")
-    plt.xticks(delay_list)
-    plt.xlabel("Amount of Delay K")
-    plt.ylabel("Regret Ratio")
-    plt.plot(delay_list, regret1, marker='o', markersize=2, label='B = 25')
-    plt.plot(delay_list, regret2, marker='o', markersize=2, label='B = 50')
-    plt.plot(delay_list, regret3, marker='o', markersize=2, label='B = 75')
-    # plt.plot(delay_list, regret4, marker='o', markersize=2, label='Instance 4')
-    plt.legend(prop={"size": 12})
-    plt.savefig('ratio_secretary.png')
-    plt.show()
+        plt.title("Regret Ratios for Multisecretary Problem")
+        plt.xticks(delay_list)
+        plt.xlabel("Amount of Delay K")
+        plt.ylabel("Regret Ratio")
+        plt.plot(delay_list, regret1, marker='o', markersize=2, label='B = 25')
+        plt.plot(delay_list, regret2, marker='o', markersize=2, label='B = 50')
+        plt.plot(delay_list, regret3, marker='o', markersize=2, label='B = 75')
+        # plt.plot(delay_list, regret4, marker='o', markersize=2, label='Instance 4')
+        plt.legend(prop={"size": 12})
+        plt.savefig('ratio_secretary.png')
+        plt.show()
+    elif flag == "batch":
+        # output = {"on_delay": regret_online, "delay_list": delay_list, "on_batch": ratio_online}
+        eg2 = np.load('./result_secretary/setting%d%s.npy' % (inv_num, flag), allow_pickle=True)
+        instance = eg2.item()
+        online_ratio2 = instance['on_delay']
+        regret_ratio2 = [1 - on for on in online_ratio2]
+        delay_list2 = instance['delay_list']
+        online_batch2 = instance['on_batch']
+        batch_ratio2 = [1 - on for on in online_batch2]
 
-    # plt.title("Ratio for Multisecretary Problem")
-    # plt.xticks(range(0, len(delay_list), 2))
-    # plt.xlabel("Number of Delay K")
-    # plt.ylabel("Ratio")
-    # plt.plot(delay_list, ratio1, marker='o', markersize=2, label='Instance 1')
-    # plt.plot(delay_list, ratio2, marker='o', markersize=2, label='Instance 2')
-    # plt.plot(delay_list, ratio3, marker='o', markersize=2, label='Instance 3')
-    # plt.plot(delay_list, ratio4, marker='o', markersize=2, label='Instance 4')
-    # plt.legend(prop={"size": 12})
-    # plt.savefig('ratio_secretary.png')
-    # plt.show()
+        plt.title("Regret Ratio for Multisecretary Problem with Delay and Batching")
+        delay_list = delay_list2[1: len(delay_list2)]
+        plt.xticks(delay_list)
+        plt.tick_params(labelsize=7)
+        plt.xlabel("Amount of Delay K")
+        plt.ylabel("Regret Ratio")
+        plt.plot(delay_list, regret_ratio2[1: len(delay_list)+1], marker='o', markersize=2, label='B = %d' % inv_num)
+        plt.plot(delay_list, batch_ratio2[1: len(delay_list)+1], marker='o', markersize=2, label='B = %d - Batching'%inv_num)
+        plt.legend(prop={"size": 12})
+        plt.savefig('ratio_secretary%d%s.png'% (inv_num, flag))
+        plt.show()
+    elif flag == "unknown":
+        # output = {"on_delay": regret_online, "delay_list": delay_list, "on_unknown": ratio_online}
+        eg3 = np.load('./result_secretary/setting%d%s.npy' % (inv_num, flag), allow_pickle=True)
+        instance = eg3.item()
+        online_ratio3 = instance['on_delay']
+        regret_ratio3 = [1 - on for on in online_ratio3]
+        delay_list3 = instance['delay_list']
+        online_unknown3 = instance['on_unknown']
+        unknown_ratio3 = [1 - on for on in online_unknown3]
+        diff_regret = [0] * (len(delay_list3) - 1)
+        diff_unknown = [0] * (len(delay_list3) - 1)
+        rho = [0] * len(delay_list3)
+        for K in range(len(delay_list3) - 1):
+            diff_regret[K] = regret_ratio3[K] - regret_ratio3[K + 1]
+            diff_unknown[K] = unknown_ratio3[K] - unknown_ratio3[K + 1]
+
+        delay_list = delay_list3[2:len(delay_list3)]
+        plt.title("Marginal Benefit Ratio for Multisecretary Problem")
+        plt.xticks(delay_list)
+        plt.xlabel("Amount of Delay K")
+        plt.ylabel("Ratio")
+        plt.plot(delay_list, diff_regret[1: len(delay_list) + 1], marker='o', markersize=2,
+                 label='B = %d - Known' % inv_num)
+        plt.plot(delay_list, diff_unknown[1: len(delay_list) + 1], marker='o', markersize=2,
+                 label='B = %d - Unknown' % inv_num)
+        plt.legend(prop={"size": 12})
+        plt.savefig('ratio_secretary%d%s.png' % (inv_num, flag))
+        plt.show()
+
+

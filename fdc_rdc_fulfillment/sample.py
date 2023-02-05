@@ -1,5 +1,4 @@
-# @author: Yaqi Xie
-# @email: xieyq188@gmail.com
+
 # @date: 2022/09/07
 
 import pandas as pd

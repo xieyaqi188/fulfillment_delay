@@ -1,6 +1,6 @@
 # The Benefits of Delay to Online Decision-Making
 
-Code for numerical experiments in [**Yaqi Xie, Will Ma, Linwei Xin. The Benefits of Delay to Online Decision-Making.**](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4248326)
+Code for numerical experiments in ``The Benefits of Delay to Online Decision-Making".
 
 ### Multisecretary Problem
 

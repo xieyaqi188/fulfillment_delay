@@ -1,5 +1,4 @@
-# @author: Yaqi Xie
-# @email: xieyq188@gmail.com
+
 # @date: 2022/08/18
 
 import numpy as np

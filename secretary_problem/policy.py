@@ -1,5 +1,4 @@
-# @author: Yaqi Xie
-# @email: xieyq188@gmail.com
+
 # @date: 2022/05/28
 
 import numpy as np
@@ -72,6 +71,55 @@ def online(val, prob, time_num, inv_num, sample, delay):
     total_val = 0
     # one-by-one decision for t = time_num-1, ..., delay+1
     for t in range(time_num-1, delay, -1):
+        decision = fluid_bayes(val, prob, t, inv_num, sample, delay)
+        # print(t, decision)
+        # decision = {0, 1}: 1 = accept, 0 = reject
+        total_val += sample[t] * decision
+        inv_num -= decision
+
+    # last (delay+1)-period decision for t = delay, ..., 0
+    total_val += offline(val, inv_num, sample[0:delay+1])
+    return total_val
+
+
+def batch(val, prob, time_num, inv_num, sample, delay):
+    """
+    K-Batching
+    """
+    total_val = 0
+    # one-by-one decision for t = time_num-1, ..., delay+1
+    for t in range(time_num - 1, delay, -1):
+        if delay == -1:
+            current_delay = -1
+        else:
+            current_delay = delay - (time_num - t) % (delay + 1)
+        decision = fluid_bayes(val, prob, t, inv_num, sample, current_delay)
+        # print(t, decision)
+        # decision = {0, 1}: 1 = accept, 0 = reject
+        total_val += sample[t] * decision
+        inv_num -= decision
+
+    # last (delay+1)-period decision for t = delay, ..., 0
+    total_val += offline(val, inv_num, sample[0:delay + 1])
+    return total_val
+
+
+def unknown(val, time_num, inv_num, sample, delay):
+    """
+    Unknown Distributions --- Sample Average + Delay
+    """
+    total_val = 0
+    # one-by-one decision for t = time_num-1, ..., delay+1
+    for t in range(time_num-1, delay, -1):
+        realized_demand = [0] * len(val)
+        if delay == -1:
+            for s in sample[t - (delay + 1): time_num-1]:
+                realized_demand[val.index(s)] += 1
+            prob = [r / (time_num - 1 - (t - (delay + 1)) + 1) for r in realized_demand]
+        else:
+            for s in sample[t - delay: time_num-1]:
+                realized_demand[val.index(s)] += 1
+            prob = [r / (time_num - 1 - (t - delay) + 1) for r in realized_demand]
         decision = fluid_bayes(val, prob, t, inv_num, sample, delay)
         # print(t, decision)
         # decision = {0, 1}: 1 = accept, 0 = reject
