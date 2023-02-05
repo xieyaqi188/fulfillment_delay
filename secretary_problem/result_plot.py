@@ -70,7 +70,7 @@ if __name__ == '__main__':
         plt.tick_params(labelsize=7)
         plt.xlabel("Amount of Delay K")
         plt.ylabel("Regret Ratio")
-        plt.plot(delay_list, regret_ratio2[1: len(delay_list)+1], marker='o', markersize=2, label='B = %d' % inv_num)
+        plt.plot(delay_list, regret_ratio2[1: len(delay_list)+1], marker='o', markersize=2, label='B = %d - Delay' % inv_num)
         plt.plot(delay_list, batch_ratio2[1: len(delay_list)+1], marker='o', markersize=2, label='B = %d - Batching'%inv_num)
         plt.legend(prop={"size": 12})
         plt.savefig('ratio_secretary%d%s.png'% (inv_num, flag))
