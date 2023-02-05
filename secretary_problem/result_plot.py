@@ -29,8 +29,8 @@ def data(instance):
 if __name__ == '__main__':
     # inv_num = 25, 50, 75
     # flag = "delay", "batch", "unknown"
-    inv_num = 25
-    flag = "batch"
+    inv_num = 75
+    flag = "unknown"
 
     if flag == "delay":
         instance1 = np.load('./result_secretary/setting25delay.npy', allow_pickle=True)
@@ -92,7 +92,7 @@ if __name__ == '__main__':
             diff_unknown[K] = unknown_ratio3[K] - unknown_ratio3[K + 1]
 
         delay_list = delay_list3[2:len(delay_list3)]
-        plt.title("Marginal Benefit Ratio for Multisecretary Problem")
+        plt.title("Marginal Benefit (Decrease in Regret Ratio) for Multisecretary Problem")
         plt.xticks(delay_list)
         plt.xlabel("Amount of Delay K")
         plt.ylabel("Ratio")
