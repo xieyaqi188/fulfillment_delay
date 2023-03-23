@@ -4,7 +4,7 @@ Code for numerical experiments in ``The Benefits of Delay to Online Decision-Mak
 
 ### Multisecretary Problem
 
-1. "./secretary_problem/test.py" runs Algorithm 1 with different parameter settings.
+1. "./secretary_problem/test.py" runs Algorithm 1 with different settings in Section 7.1 and 7.2.
 2. "./secretary_problem/result_plot.py" runs plots.
 
 ### Order-Fulfillment Problem
