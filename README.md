@@ -11,7 +11,7 @@ Code for numerical experiments in ``The Benefits of Delay to Online Decision-Mak
 
 Note: Some file paths to read or save .csv file or .np file are absolute paths, please change them in local computers.
 
-1. We use a dataset of JD.com by [Shen Z, Tang C, Wu D, Yuan R, Zhou W (2020) Jd.com: Transaction level data for the 2020 msom data driven research challenge. Manufacturing & Service Operations Management Forthcoming.](https://pubsonline.informs.org/doi/abs/10.1287/msom.2020.0900) **Add the dataset into the file "./jd_data/JD_data".** Their two tables "JD_order_data.csv" and "JD_network_data.csv" are used as follows in "./fdc_rdc_fulfillment/sample.py".
+1. We use a dataset of JD.com by [Shen M, Tang CS, Wu D, Yuan R, Zhou W (2024) Jd. com: Transaction-level data for the 2020 msom data driven research challenge. Manufacturing & Service Operations Management 26(1):2–10.](https://pubsonline.informs.org/doi/abs/10.1287/msom.2020.0900) **Add the dataset into the file "./jd_data/JD_data".** Their two tables "JD_order_data.csv" and "JD_network_data.csv" are used as follows in "./fdc_rdc_fulfillment/sample.py".
 
 ```python
 network = pd.read_csv("D:/Pycharm/fulfillment_delay/jd_data/JD_data/JD_network_data.csv")
