@@ -6,6 +6,7 @@ from tqdm import tqdm
 from lp_policy import lp_relax, ip, bayes_selector, lp_relax_obj2, ip_obj2
 import copy
 import datetime
+import math
 
 
 def offline(demand, inv_num, consume, flag, obj):
@@ -43,6 +44,10 @@ def current_demand(new_data, prob, order_list, current_time, delta, delay_num, d
 
     demand = [0] * len(order_list)
 
+    # Determine if current_time is on a weekend
+    is_weekend = current_time.dayofweek >= 5
+    day_type = 'weekend' if is_weekend else 'weekday'
+
     abs_time_list = new_data.index.tolist()
     end_time = current_time + delay_num * delay_period
     for t in abs_time_list:
@@ -55,9 +60,9 @@ def current_demand(new_data, prob, order_list, current_time, delta, delay_num, d
     current_delta_num = current // delta
     for i in range(len(order_list)):
         current_order = order_list[i]
-        demand[i] += (1 - (current % delta) / delta) * prob[current_order][current_delta_num]
+        demand[i] += (1 - (current % delta) / delta) * prob[day_type][current_order][current_delta_num]
         for num in range(current_delta_num + 1, delta_num):
-            demand[i] += prob[current_order][num]
+            demand[i] += prob[day_type][current_order][num]
     return demand
 
 
@@ -83,6 +88,85 @@ def online(new_data, prob, inv_num, consume, order_dict, order_list, delta, dela
             index = 1
             if current_order in order_list:
                 exp_demand = current_demand(new_data, prob, order_list, t, delta, delay_num, delay_period)
+
+                # decision = 0, 1
+                decision = bayes_selector(exp_demand, copy_inv, current_order, consume, order_list, obj)
+                if decision == 1:
+                    if obj == 'order':
+                        on_val += 1
+                    elif obj == 'item':
+                        on_val += quantity[order_list.index(current_order)]
+                    current_consume = order_dict[current_order]
+                    for sku_key, sku_quantity in current_consume.items():
+                        copy_inv[sku_key] -= sku_quantity
+        else:
+            break
+
+    if index == 0:
+        remain_list = time_list[time:]
+        print('end_time', t, 'remain', remain_list)
+        remain_order = new_data.loc[remain_list]['order_type'].values.tolist()
+        remain_demand = [remain_order.count(order_list[i]) for i in range(len(order_list))]
+        on_val += offline(remain_demand, copy_inv, consume, 'IP', obj)
+    return on_val
+
+
+def current_demand_batch(new_data, prob, order_list, current_time, delta, delay_num, delay_period):
+    # Note: time_delta = delay-period = 30min
+    one_day = datetime.timedelta(days=1)
+    delta_num = int(one_day / delta)
+
+    demand = [0] * len(order_list)
+
+    # Determine if current_time is on a weekend
+    is_weekend = current_time.dayofweek >= 5
+    day_type = 'weekend' if is_weekend else 'weekday'
+
+    abs_time_list = new_data.index.tolist()
+
+    ct = datetime.timedelta(hours=current_time.hour, minutes=current_time.minute, seconds=current_time.second)
+    if delay_num == 0:
+        end_time = current_time + delay_num * delay_period
+    else:
+        ct_remaining_num = ct % (delay_period * delay_num)
+        end_time = current_time + (delay_period * delay_num - ct_remaining_num)
+
+    for t in abs_time_list:
+        if current_time <= t <= end_time:
+            temp_order = new_data.loc[t, 'order_type']
+            if temp_order in order_list:
+                demand[order_list.index(temp_order)] += 1
+
+    # current = the end-time of this delay
+    current = datetime.timedelta(hours=end_time.hour, minutes=end_time.minute, seconds=end_time.second)
+    current_delta_num = current // delta
+    for i in range(len(order_list)):
+        current_order = order_list[i]
+        demand[i] += (1 - (current % delta) / delta) * prob[day_type][current_order][current_delta_num]
+        for num in range(current_delta_num + 1, delta_num):
+            demand[i] += prob[day_type][current_order][num]
+    return demand
+
+
+def batch(new_data, prob, inv_num, consume, order_dict, order_list, delta, delay_num, delay_period, obj):
+
+    on_val = 0
+    copy_inv = copy.deepcopy(inv_num)
+    time_list = new_data.index.tolist()
+
+    for time in tqdm(range(len(time_list))):
+        consume, order_list = update_order_bundle(copy_inv, consume, order_list)
+        quantity = np.sum(consume, axis=0)
+
+        t = time_list[time]
+        current_order = new_data.loc[t, 'order_type']
+        current = datetime.timedelta(hours=t.hour, minutes=t.minute, seconds=t.second)
+        # whether the final time period `time` is added
+        index = 0
+        if current + delay_num * delay_period < datetime.timedelta(hours=24):
+            index = 1
+            if current_order in order_list:
+                exp_demand = current_demand_batch(new_data, prob, order_list, t, delta, delay_num, delay_period)
 
                 # decision = 0, 1
                 decision = bayes_selector(exp_demand, copy_inv, current_order, consume, order_list, obj)

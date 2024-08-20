@@ -6,7 +6,7 @@ import pandas as pd
 from tqdm import tqdm
 import datetime
 
-from online_offline import offline, online, current_demand
+from online_offline import offline, online, batch
 from setting import sku, inv_1, inv_2, order_demand, consume_mat
 from lp_policy import ip, lp_relax
 from sample import sample_filter
@@ -22,11 +22,12 @@ if __name__ == '__main__':
     :param new_data: Dataframe[order_time, order_type]
     :param consume: sku * order
     :param delay_period: the length of one period
+    
     :param delay_list: 
     :param delta: timedelta for `prob`
     """
 
-    fdc = 35
+    fdc = 46
     sett = sample_filter(fdc)
     # sett = np.load('D:/Pycharm/fulfillment_delay/jd_data/pre_data/setting.npy', allow_pickle=True)
     # sett = sett.item()
@@ -63,6 +64,7 @@ if __name__ == '__main__':
     total_ip_opt = 0
     total_lp_opt = 0
     total_online_val = [0] * len(delay_list)
+    total_batch_val = [0] * len(delay_list)
     runtime = datetime.timedelta(seconds=0)
 
     for i in range(len(day_set)):
@@ -81,7 +83,7 @@ if __name__ == '__main__':
         current_data = new_data.loc[d]
         time_list = current_data.index.tolist()
         # run algorithm
-        result[d] = {}
+        # result[d] = {}
         run_start = datetime.datetime.now()
 
         # optimal IP & LP
@@ -101,27 +103,38 @@ if __name__ == '__main__':
         total_lp_opt += lp_opt_val
 
         online_val = [0] * len(delay_list)
+        batch_val = [0] * len(delay_list)
         for K in delay_list:
-            on_res = online(current_data, prob, inv_num, consume, order_dict, order_list, delta, K, delay_period, obj)
+            if K == 0:
+                on_res = online(current_data, prob, inv_num, consume, order_dict, order_list, delta, K, delay_period, obj)
+                batch_res = on_res
+            else:
+                batch_res = batch(current_data, prob, inv_num, consume, order_dict, order_list, delta, K, delay_period, obj)
+                on_res = online(current_data, prob, inv_num, consume, order_dict, order_list, delta, K, delay_period, obj)
             online_val[delay_list.index(K)] = on_res
-            print(d, ' with delay', K, 'online: ', on_res)
+            batch_val[delay_list.index(K)] = batch_res
+            print(d, ' with delay', K, 'online', on_res, '; batch', batch_res)
             total_online_val[delay_list.index(K)] += on_res
-        result[d]['online_delay'] = online_val
+            total_batch_val[delay_list.index(K)] += batch_res
+        # result[d]['online_delay'] = online_val
+        # result[d]['online_batch'] = batch_val
         run_end = datetime.datetime.now()
         runtime += run_end - run_start
         # print(d, 'cur_val', res[d][4], 'opt_val', res[d][5], 'online', online_val)
-        print(d, 'IP_opt_val', ip_opt_val, 'LP_opt_val', lp_opt_val, 'online', online_val)
+        print(d, 'IP_opt_val', ip_opt_val, 'LP_opt_val', lp_opt_val, 'online', online_val, 'batch', batch_val)
 
     test_ip = total_ip_opt / len(day_set)
     test_lp = total_lp_opt / len(day_set)
     on_delay = [a / len(day_set) for a in total_online_val]
+    on_batch = [a / len(day_set) for a in total_batch_val]
     print('FDC', fdc, 'RDC', rdc)
     print('average IP value: ', test_ip, 'average LP value: ', test_lp)
-    print('average online values: ', on_delay)
+    print('average online values - delay: ', on_delay)
+    print('average online values - batch: ', on_batch)
     print('average running time: ', runtime / len(day_set) / len(delay_list))
 
     # save results
-    output = {"FDC": fdc, "RDC": rdc, "off_IP": test_ip, "off_LP": test_lp, "on_delay": on_delay,
+    output = {"FDC": fdc, "RDC": rdc, "off_IP": test_ip, "off_LP": test_lp, "on_delay": on_delay, "on_batch": on_batch,
               "delay": delay}
-    np.save('./result/fdc{FDC}_rdc{RDC}.npy'.format(FDC=fdc, RDC=rdc), output)
+    np.save('./new_result/time_batch_fdc{FDC}_rdc{RDC}.npy'.format(FDC=fdc, RDC=rdc), output)
 

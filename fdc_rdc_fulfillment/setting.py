@@ -75,7 +75,8 @@ def order_demand(data, day_set, delta):
     order_id_list = data['order_ID'].unique().tolist()
     sku_list = data['sku_ID'].unique().tolist()
     order_dict = {}
-    prob = {}
+    # prob = {}
+    prob = {'weekday': {}, 'weekend': {}}
     index_j = 0
 
     one_day = datetime.timedelta(days=1)
@@ -93,6 +94,8 @@ def order_demand(data, day_set, delta):
         t = tmp[tmp['sku_ID'] == tmp_list[0]].index.tolist()
         time = datetime.timedelta(hours=t[0].hour, minutes=t[0].minute, seconds=t[0].second)
         current_delta = time // delta
+        tt = pd.to_datetime(t[0])
+        is_weekend = tt.dayofweek >= 5
 
         tmp_value = {}
         for j in range(0, len(tmp_list3)):
@@ -101,22 +104,32 @@ def order_demand(data, day_set, delta):
             key_list = list(order_dict.keys())
             value_list = list(order_dict.values())
             tmp_key = key_list[value_list.index(tmp_value)]
-            prob[tmp_key][current_delta] += 1
+            # prob[tmp_key][current_delta] += 1
+            prob['weekend' if is_weekend else 'weekday'][tmp_key][current_delta] += 1
             tmp_data = pd.DataFrame(data=[[tmp_key, t[0]]], columns=['order_type', 'order_time'])
             new_data = pd.concat([new_data, tmp_data])
         else:
             order_dict[index_j] = tmp_value
-            prob[index_j] = {}
-            for num in range(delta_num):
-                prob[index_j][num] = 0
-            prob[index_j][current_delta] = 1
+            # prob[index_j] = {}
+            # for num in range(delta_num):
+            #     prob[index_j][num] = 0
+            # prob[index_j][current_delta] = 1
+            prob['weekday'][index_j] = {n: 0 for n in range(delta_num)}
+            prob['weekend'][index_j] = {n: 0 for n in range(delta_num)}
+            prob['weekend' if is_weekend else 'weekday'][index_j][current_delta] = 1
             tmp_data = pd.DataFrame(data=[[index_j, t[0]]], columns=['order_type', 'order_time'])
             new_data = pd.concat([new_data, tmp_data])
             index_j += 1
 
+        # Normalize probabilities by the number of days in each category
+        weekday_count = sum(1 for d in day_set if pd.to_datetime(d).dayofweek < 5)
+        weekend_count = len(day_set) - weekday_count
+
     for o in range(index_j):
         for num in range(delta_num):
-            prob[o][num] = prob[o][num] / len(day_set)
+            # prob[o][num] = prob[o][num] / len(day_set)
+            prob['weekday'][o][num] /= weekday_count
+            prob['weekend'][o][num] /= weekend_count
 
     new_data = new_data.set_index('order_time')
     new_data = new_data.sort_index()
